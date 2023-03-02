@@ -1,6 +1,8 @@
 name: CI Build + Unit Tests
 
 on:
+  push:
+    branches: ['main']
   pull_request:
     branches: ['main']
   workflow_dispatch:
@@ -29,8 +31,21 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Install GitVersion
+        uses: actions/gitversion/setup@v0.9
+        with:
+          versionSpec: '5.1.x'
+
+      - name: Use GitVersion
+        id: gitversion # step id used as reference for output values
+        uses: actions/gitversion/execute@v0.9
+
       - name: Restore dependencies
         run: dotnet restore -p:PublishReadyToRun=${{ matrix.settings.publishReadyToRun }}
 
       - name: Build solution
         run: dotnet msbuild -maxcpucount -p:RestorePackagesConfig=false -p:Configuration=${{ matrix.settings.configuration }} -verbosity:normal
+
+      - name: Publish solution
+        run: dotnet publish TestApp/TestApp.csproj --configuration release /p:AssemblyVersion=${{ steps.gitversion.outputs.assemblySemFileVer }} /p:FileVersion=${{ steps.gitversion.outputs.assemblySemFileVer }} /p:InformationalVersion=${{ steps.gitversion.outputs.Sha }}
+
