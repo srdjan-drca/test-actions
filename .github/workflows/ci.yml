@@ -52,9 +52,14 @@ jobs:
         run: dotnet restore -p:PublishReadyToRun=${{ matrix.settings.publishReadyToRun }}
 
       - name: Build solution
-        run: dotnet publish -maxcpucount -p:RestorePackagesConfig=false -p:Configuration=${{ matrix.settings.configuration }} -f:net7.0-windows10.0.19041.0 -p:PackageCertificateThumbprint="${{ secrets.WINDOWS_PFX_THUMBPRINT }}" -verbosity:normal
+        run: dotnet publish -maxcpucount -p:RestorePackagesConfig=false \
+               -p:Configuration=${{ matrix.settings.configuration }} \
+               -p:PackageCertificateThumbprint="${{ secrets.WINDOWS_PFX_THUMBPRINT }}" \
+               -f:net7.0-windows10.0.19041.0 \
+               -verbosity:normal
 
       - name: Upload a build artifact
         uses: actions/upload-artifact@v3.1.2
         with:
           path: .\**\AppPackages\**\*.*
+          retention-days: 10
