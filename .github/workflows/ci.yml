@@ -52,9 +52,12 @@ jobs:
         run: dotnet restore -p:PublishReadyToRun=${{ matrix.settings.publishReadyToRun }}
 
       - name: Build solution
+        run: dotnet msbuild -maxcpucount -p:RestorePackagesConfig=false -p:Configuration=${{ matrix.settings.configuration }} -verbosity:normal
+
+      - name: Publish solution
         run: >
-          dotnet publish -maxcpucount -p:RestorePackagesConfig=false
-          -p:Configuration=${{ matrix.settings.configuration }}
+          dotnet publish --no-build
+          -p:Configuration=Release
           -p:PackageCertificateThumbprint="${{ secrets.WINDOWS_PFX_THUMBPRINT }}"
           -f:net7.0-windows10.0.19041.0
           -verbosity:normal
