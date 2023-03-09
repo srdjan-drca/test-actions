@@ -52,11 +52,11 @@ jobs:
         run: dotnet restore -p:PublishReadyToRun=${{ matrix.settings.publishReadyToRun }}
 
       - name: Build solution
-        run: |
-            dotnet publish -maxcpucount -p:RestorePackagesConfig=false \
-               -p:Configuration=${{ matrix.settings.configuration }} \
-               -p:PackageCertificateThumbprint="${{ secrets.WINDOWS_PFX_THUMBPRINT }}" \
-               -f:net7.0-windows10.0.19041.0 \
+        run: >
+            dotnet publish -maxcpucount -p:RestorePackagesConfig=false
+               -p:Configuration=${{ matrix.settings.configuration }}
+               -p:PackageCertificateThumbprint="${{ secrets.WINDOWS_PFX_THUMBPRINT }}"
+               -f:net7.0-windows10.0.19041.0
                -verbosity:normal
 
       - name: Upload a build artifact
