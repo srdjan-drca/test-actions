@@ -37,8 +37,11 @@ jobs:
       - name: Build solution
         run: dotnet build -maxcpucount -p:RestorePackagesConfig=false -p:Configuration=${{ matrix.settings.configuration }} -verbosity:normal
 
-    outputs:
-      ./
+      - name: Cache build output
+        uses: actions/cache@v2
+        with:
+          path: ./
+          key: build-output
 
   publish:
     runs-on:
@@ -47,6 +50,13 @@ jobs:
     needs: build
 
     steps:
+      - name: Get build output from cache
+        id: build-test
+        uses: actions/cache@v2
+        with:
+          path: ./
+          key: build-output
+
       - name: Install gitversion
         uses: gittools/actions/gitversion/setup@v0.9.15
         with:
