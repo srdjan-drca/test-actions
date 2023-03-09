@@ -31,21 +31,30 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Install GitVersion
+      - name: Install gitversion
         uses: gittools/actions/gitversion/setup@v0.9.7
         with:
           versionSpec: '5.x'
 
-      - name: Determine Version
+      - name: Determine version
         id: gitversion # step id used as reference for output values
         uses: gittools/actions/gitversion/execute@v0.9.7
+
+      - name: Decrypt PFX file
+        run: |
+          echo "${{ secrets.WINDOWS_PFX_FILE }}" > cert.pfx.asc
+          certutil -decode cert.pfx.asc cert.pfx
+
+      - name: Add certificate to store
+        run: certutil -user -q -p ${{ secrets.WINDOWS_PFX_PASSWORD }} -importpfx cert.pfx NoRoot
 
       - name: Restore dependencies
         run: dotnet restore -p:PublishReadyToRun=${{ matrix.settings.publishReadyToRun }}
 
       - name: Build solution
-        run: dotnet msbuild -maxcpucount -p:RestorePackagesConfig=false -p:Configuration=${{ matrix.settings.configuration }} -verbosity:normal
+        run: dotnet publish -maxcpucount -p:RestorePackagesConfig=false -p:Configuration=${{ matrix.settings.configuration }} -f:net7.0-windows10.0.19041.0 -p:PackageCertificateThumbprint="${{ secrets.WINDOWS_PFX_THUMBPRINT }}" -verbosity:normal
 
-      #- name: Publish solution
-      #  run: dotnet publish TestApp/TestApp.csproj --configuration release /p:AssemblyVersion=${{ steps.gitversion.outputs.assemblySemFileVer }} /p:FileVersion=${{ steps.gitversion.outputs.assemblySemFileVer }} /p:InformationalVersion=${{ steps.gitversion.outputs.Sha }}
-
+      - name: Upload a build artifact
+        uses: actions/upload-artifact@v3.1.2
+        with:
+          path: .\**\AppPackages\**\*.*
