@@ -7,6 +7,9 @@ on:
     branches: ['main']
   workflow_dispatch:
 
+env:
+  Solution_Name: TestApp.sln
+
 jobs:
   build:
     strategy:
@@ -22,15 +25,28 @@ jobs:
       # For a list of available runner types, refer to
       # https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idruns-on
 
-    env:
-      Solution_Name: TestApp.sln
-
     steps:
       - name: Checkout
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
+      - name: Restore dependencies
+        run: dotnet restore -p:PublishReadyToRun=${{ matrix.settings.publishReadyToRun }}
+
+      - name: Build solution
+        run: dotnet build -maxcpucount -p:RestorePackagesConfig=false -p:Configuration=${{ matrix.settings.configuration }} -verbosity:normal
+
+    outputs:
+      ./
+
+  publish:
+    runs-on:
+      windows-latest
+
+    needs: build
+
+    steps:
       - name: Install gitversion
         uses: gittools/actions/gitversion/setup@v0.9.15
         with:
@@ -48,12 +64,6 @@ jobs:
       - name: Add certificate to store
         run: certutil -user -q -p ${{ secrets.WINDOWS_PFX_PASSWORD }} -importpfx cert.pfx NoRoot
 
-      - name: Restore dependencies
-        run: dotnet restore -p:PublishReadyToRun=${{ matrix.settings.publishReadyToRun }}
-
-      - name: Build solution
-        run: dotnet msbuild -maxcpucount -p:RestorePackagesConfig=false -p:Configuration=${{ matrix.settings.configuration }} -verbosity:normal
-
       - name: Publish solution
         run: >
           dotnet publish --no-build
@@ -62,7 +72,7 @@ jobs:
           -f:net7.0-windows10.0.19041.0
           -verbosity:normal
 
-      - name: Upload a build artifact
+      - name: Upload artifact
         uses: actions/upload-artifact@v3.1.2
         with:
           name: "dc-cloud-schema-manager-${{ steps.gitversion.outputs.fullSemVer }}"
