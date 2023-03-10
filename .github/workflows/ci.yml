@@ -38,7 +38,7 @@ jobs:
         run: dotnet build -maxcpucount -p:RestorePackagesConfig=false -p:Configuration=${{ matrix.settings.configuration }} -verbosity:normal
 
       - name: Cache build output
-        uses: actions/cache@v2
+        uses: actions/cache@v3.3.0
         with:
           path: ./
           key: build-output
@@ -52,7 +52,7 @@ jobs:
     steps:
       - name: Get build output from cache
         id: build-test
-        uses: actions/cache@v2
+        uses: actions/cache@v3.3.0
         with:
           path: ./
           key: build-output
