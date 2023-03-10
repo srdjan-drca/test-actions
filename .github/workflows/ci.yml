@@ -38,14 +38,14 @@ jobs:
         run: dotnet build -maxcpucount -p:RestorePackagesConfig=false -p:Configuration=${{ matrix.settings.configuration }} -verbosity:normal
 
       - name: Cache build output
+        if: ${{ matrix.settings.configuration }} == 'Release'
         uses: actions/cache@v3.3.0
         with:
           path: ./
           key: build-output
 
   publish:
-    runs-on:
-      windows-latest
+    runs-on: windows-latest
 
     needs: build
 
@@ -88,3 +88,25 @@ jobs:
           name: "dc-cloud-schema-manager-${{ steps.gitversion.outputs.fullSemVer }}"
           path: .\**\AppPackages\**\*.*
           retention-days: 10
+
+  release:
+    runs-on: windows-latest
+
+    needs: [build, publish]
+
+    steps:
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          body: |
+            Changes in this Release
+            - First Change
+            - Second Change
+          draft: false
+          prerelease: false
+
