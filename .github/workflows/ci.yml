@@ -37,12 +37,11 @@ jobs:
       - name: Build solution
         run: dotnet build -maxcpucount -p:RestorePackagesConfig=false -p:Configuration=${{ matrix.settings.configuration }} -verbosity:normal
 
-      - name: Cache build output
-        if: ${{ matrix.settings.configuration }} == 'Release'
+      - name: Cache workspace after build
         uses: actions/cache@v3.3.0
         with:
           path: ./
-          key: build-output
+          key: ${{ runner.os }}-${{ matrix.settings.configuration }}-${{ github.event.repository.updated_at }}
 
   publish:
     runs-on: windows-latest
@@ -50,23 +49,23 @@ jobs:
     needs: build
 
     steps:
-      - name: Get build output from cache
+      - name: Restore workspace from cache
         id: build-test
         uses: actions/cache@v3.3.0
         with:
           path: ./
-          key: build-output
+          key: ${{ runner.os }}-Release-${{ github.event.repository.updated_at }}
 
       - name: Install gitversion
         uses: gittools/actions/gitversion/setup@v0.9.15
         with:
           versionSpec: '5.x'
 
-      - name: Determine version
+      - name: Determine application version
         id: gitversion # step id used as reference for output values
         uses: gittools/actions/gitversion/execute@v0.9.15
 
-      - name: Decrypt PFX file
+      - name: Decrypt certificate
         run: |
           echo "${{ secrets.WINDOWS_PFX_FILE }}" > cert.pfx.asc
           certutil -decode cert.pfx.asc cert.pfx
