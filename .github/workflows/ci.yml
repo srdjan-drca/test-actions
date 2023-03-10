@@ -73,6 +73,9 @@ jobs:
       - name: Add certificate to store
         run: certutil -user -q -p ${{ secrets.WINDOWS_PFX_PASSWORD }} -importpfx cert.pfx NoRoot
 
+      - name: Restore dependencies
+        run: dotnet restore -p:PublishReadyToRun=True
+
       - name: Publish solution
         run: >
           dotnet publish --no-build
