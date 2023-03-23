@@ -88,17 +88,6 @@ jobs:
         uses: actions/upload-artifact@v3.1.2
         with:
           name: "dc-cloud-schema-manager-${{ steps.gitversion.outputs.fullSemVer }}"
-          path: .\**\AppPackages\**\*.*
+          path: ./TestApp/bin/Release/net7.0-windows10.0.19041.0/win10-x64/AppPackages/
           retention-days: 10
-
-  release:
-    runs-on: windows-latest
-
-    needs: [build, publish]
-
-    steps:
-      - name: Create Release
-        uses: softprops/action-gh-release@v1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
 
