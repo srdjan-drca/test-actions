@@ -9,6 +9,7 @@ on:
 
 env:
   Solution_Name: TestApp.sln
+  Framework: net7.0-windows10.0.19041.0
 
 jobs:
   build:
@@ -81,13 +82,13 @@ jobs:
           dotnet publish --no-build
           -p:Configuration=Release
           -p:PackageCertificateThumbprint="${{ secrets.WINDOWS_PFX_THUMBPRINT }}"
-          -f:net7.0-windows10.0.19041.0
+          -f:$Framework
           -verbosity:normal
 
       - name: Upload artifact
         uses: actions/upload-artifact@v3.1.2
         with:
           name: "dc-cloud-schema-manager-${{ steps.gitversion.outputs.fullSemVer }}"
-          path: ./TestApp/bin/Release/net7.0-windows10.0.19041.0/win10-x64/AppPackages/
+          path: ./TestApp/bin/Release/$Framework/win10-x64/AppPackages/
           retention-days: 10
 
