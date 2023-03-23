@@ -12,7 +12,30 @@ env:
   Framework: net7.0-windows10.0.19041.0
 
 jobs:
+  generate_version:
+    runs-on:
+      windows-latest
+      # For a list of available runner types, refer to
+      # https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idruns-on
+
+    outputs:
+      appVersion: ${{ steps.gitversion.outputs.fullSemVer }}
+
+    steps:
+      - name: Install gitversion
+        uses: gittools/actions/gitversion/setup@v0.9.15
+        with:
+          versionSpec: '5.x'
+      - name: Determine application version
+        id: gitversion # step id used as reference for output values
+        uses: gittools/actions/gitversion/execute@v0.9.15
+
   build:
+    runs-on:
+      windows-latest
+
+    needs: generate_version
+
     strategy:
       matrix:
         settings:
@@ -20,62 +43,25 @@ jobs:
             { configuration: Release, publishReadyToRun: True },
           ]
 
-    runs-on:
-      windows-latest
-      # For a list of available runner types, refer to
-      # https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idruns-on
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-
-      - name: Restore dependencies
-        run: dotnet restore -p:PublishReadyToRun=${{ matrix.settings.publishReadyToRun }}
-
-      - name: Build solution
-        run: dotnet build -maxcpucount -p:RestorePackagesConfig=false -p:Configuration=${{ matrix.settings.configuration }} -verbosity:normal
-
-      - name: Cache workspace after build
-        uses: actions/cache@v3.3.0
-        with:
-          path: ./
-          key: ${{ runner.os }}-${{ matrix.settings.configuration }}-${{ github.event.repository.updated_at }}
-
-  publish:
-    runs-on: windows-latest
-
-    needs: build
-
-    steps:
-      - name: Restore workspace from cache
-        id: build-test
-        uses: actions/cache@v3.3.0
-        with:
-          path: ./
-          key: ${{ runner.os }}-Release-${{ github.event.repository.updated_at }}
-
-      - name: Install gitversion
-        uses: gittools/actions/gitversion/setup@v0.9.15
-        with:
-          versionSpec: '5.x'
-
-      - name: Determine application version
-        id: gitversion # step id used as reference for output values
-        uses: gittools/actions/gitversion/execute@v0.9.15
-
       - name: Decrypt certificate
         run: |
           echo "${{ secrets.WINDOWS_PFX_FILE }}" > cert.pfx.asc
           certutil -decode cert.pfx.asc cert.pfx
-
       - name: Add certificate to store
         run: certutil -user -q -p ${{ secrets.WINDOWS_PFX_PASSWORD }} -importpfx cert.pfx NoRoot
-
+      - name: Checkout code from repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
       - name: Restore dependencies
-        run: dotnet restore -p:PublishReadyToRun=True
-
+        run: dotnet restore -p:PublishReadyToRun=${{ matrix.settings.publishReadyToRun }}
+      - name: Build solution
+        run: >
+          dotnet build -maxcpucount
+          -p:RestorePackagesConfig=false
+          -p:Configuration=${{ matrix.settings.configuration }}
+          -verbosity:normal
       - name: Publish solution
         run: >
           dotnet publish --no-build
@@ -83,11 +69,13 @@ jobs:
           -p:PackageCertificateThumbprint="${{ secrets.WINDOWS_PFX_THUMBPRINT }}"
           -f:${{ env.Framework }}
           -verbosity:normal
-
       - name: Upload artifact
         uses: actions/upload-artifact@v3.1.2
         with:
-          name: "dc-cloud-schema-manager-${{ steps.gitversion.outputs.fullSemVer }}"
+          name: "dc-cloud-schema-manager-${{ needs.generate_version.outputs.appVersion }}"
           path: ./TestApp/bin/Release/${{env.Framework}}/win10-x64/AppPackages/
           retention-days: 10
+
+
+
 
