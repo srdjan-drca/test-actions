@@ -22,6 +22,10 @@ jobs:
       appVersion: ${{ steps.gitversion.outputs.fullSemVer }}
 
     steps:
+      - name: Checkout code from repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
       - name: Install gitversion
         uses: gittools/actions/gitversion/setup@v0.9.15
         with:
