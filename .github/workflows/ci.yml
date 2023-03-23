@@ -17,7 +17,6 @@ jobs:
       matrix:
         settings:
           [
-            { configuration: Debug, publishReadyToRun: False },
             { configuration: Release, publishReadyToRun: True },
           ]
 
@@ -82,13 +81,13 @@ jobs:
           dotnet publish --no-build
           -p:Configuration=Release
           -p:PackageCertificateThumbprint="${{ secrets.WINDOWS_PFX_THUMBPRINT }}"
-          -f:$Framework
+          -f:${{ env.Framework }}
           -verbosity:normal
 
       - name: Upload artifact
         uses: actions/upload-artifact@v3.1.2
         with:
           name: "dc-cloud-schema-manager-${{ steps.gitversion.outputs.fullSemVer }}"
-          path: ./TestApp/bin/Release/$Framework/win10-x64/AppPackages/
+          path: ./TestApp/bin/Release/${{env.Framework}}/win10-x64/AppPackages/
           retention-days: 10
 
