@@ -13,6 +13,8 @@ env:
 
 jobs:
   generate_version:
+    name: Generate application version
+
     runs-on:
       windows-latest
       # For a list of available runner types, refer to
@@ -35,6 +37,8 @@ jobs:
         uses: gittools/actions/gitversion/execute@v0.9.15
 
   build:
+    name: Build application
+
     runs-on:
       windows-latest
 
@@ -65,12 +69,14 @@ jobs:
           dotnet build -maxcpucount
           -p:RestorePackagesConfig=false
           -p:Configuration=${{ matrix.settings.configuration }}
+          -p:Version=${{ needs.generate_version.outputs.appVersion }}
           -verbosity:normal
       - name: Publish solution
         run: >
           dotnet publish --no-build
           -p:Configuration=Release
           -p:PackageCertificateThumbprint="${{ secrets.WINDOWS_PFX_THUMBPRINT }}"
+          -p:Version=${{ needs.generate_version.outputs.appVersion }}
           -f:${{ env.Framework }}
           -verbosity:normal
       - name: Upload artifact
