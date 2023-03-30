@@ -1,8 +1,6 @@
 name: CI Build + Unit Tests
 
 on:
-  push:
-    branches: ['main']
   pull_request:
     branches: ['main']
   workflow_dispatch:
@@ -21,7 +19,7 @@ jobs:
       # https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idruns-on
 
     outputs:
-      appVersion: ${{ steps.gitversion.outputs.fullSemVer }}
+      AppVersion: ${{ steps.gitversion.outputs.MajorMinorPatch }}.${{ steps.gitversion.outputs. }}
 
     steps:
       - name: Checkout code from repository
@@ -29,12 +27,12 @@ jobs:
         with:
           fetch-depth: 0
       - name: Install gitversion
-        uses: gittools/actions/gitversion/setup@v0.9.15
+        uses: gittools/actions/gitversion/setup@v0.10.2
         with:
           versionSpec: '5.x'
       - name: Determine application version
         id: gitversion # step id used as reference for output values
-        uses: gittools/actions/gitversion/execute@v0.9.15
+        uses: gittools/actions/gitversion/execute@v0.10.2
 
   build:
     name: Build application
@@ -69,14 +67,14 @@ jobs:
           dotnet build -maxcpucount
           -p:RestorePackagesConfig=false
           -p:Configuration=${{ matrix.settings.configuration }}
-          /p:Version=${{ needs.generate_version.outputs.appVersion }}
+          -p:Version=${{ needs.generate_version.outputs.appVersion }}
           -verbosity:normal
       - name: Publish solution
         run: >
           dotnet publish --no-build
           -p:Configuration=Release
           -p:PackageCertificateThumbprint="${{ secrets.WINDOWS_PFX_THUMBPRINT }}"
-          /p:Version=${{ needs.generate_version.outputs.appVersion }}
+          -p:Version=${{ needs.generate_version.outputs.appVersion }}
           -f:${{ env.Framework }}
           -verbosity:normal
       - name: Upload artifact

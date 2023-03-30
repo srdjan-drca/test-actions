@@ -2,26 +2,78 @@ name: Release
 
 on:
   push:
-    branches: ['test']
+    branches: ['main']
+
+env:
+  Solution_Name: TestApp.sln
+  Framework: net7.0-windows10.0.19041.0
 
 jobs:
-  build:
-    name: Release
-    runs-on: windows-latest
+  generate_version:
+    name: Generate application version
+
+    runs-on:
+      windows-latest
+      # For a list of available runner types, refer to
+      # https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idruns-on
+
+    outputs:
+      AppVersion: ${{ steps.gitversion.outputs.MajorMinorPatch }}.${{ steps.gitversion.outputs. }}
 
     steps:
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
+      - name: Checkout code from repository
+        uses: actions/checkout@v3
         with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
-          body: |
-            Changes in this Release
-            - First Change
-            - Second Change
-          draft: false
-          prerelease: false
+          fetch-depth: 0
+      - name: Install gitversion
+        uses: gittools/actions/gitversion/setup@v0.10.2
+        with:
+          versionSpec: '5.x'
+      - name: Determine application version
+        id: gitversion # step id used as reference for output values
+        uses: gittools/actions/gitversion/execute@v0.10.2
+
+  build:
+    name: Build application
+
+    runs-on:
+      windows-latest
+
+    needs: generate_version
+
+    steps:
+      - name: Decrypt certificate
+        run: |
+          echo "${{ secrets.WINDOWS_PFX_FILE }}" > cert.pfx.asc
+          certutil -decode cert.pfx.asc cert.pfx
+      - name: Add certificate to store
+        run: certutil -user -q -p ${{ secrets.WINDOWS_PFX_PASSWORD }} -importpfx cert.pfx NoRoot
+      - name: Checkout code from repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Update appxmanifest
+        run: |
+          [xml]$manifest = Get-Content "./TestApp/Platforms/Windows/Package.appxmanifest"
+          $manifest.Package.Identity.Version = "${{ needs.generate_version.outputs.AppVersion }}.0"
+          $manifest.save("./TestApp/Platforms/Windows/Package.appxmanifest")
+      - name: Restore dependencies
+        run: |
+          dotnet restore -p:PublishReadyToRun=true
+      - name: Publish solution
+        run: >
+          dotnet publish
+          -p:RestorePackagesConfig=false
+          -p:Configuration=Release
+          -p:PublishReadyToRun=true
+          -p:PackageCertificateThumbprint="${{ secrets.WINDOWS_PFX_THUMBPRINT }}"
+          -p:Version=${{ needs.generate_version.outputs.AppVersion }}.0
+          -f:${{ env.Framework }}
+          -verbosity:normal
+      - name: Upload MSIX package
+        uses: actions/upload-artifact@v3.1.2
+        with:
+          name: "TestApp-${{ needs.generate_version.outputs.AppVersion }}"
+          path: ./TestApp/bin/Release/${{ env.Framework }}/win10-x64/AppPackages/
+          retention-days: 10
 
