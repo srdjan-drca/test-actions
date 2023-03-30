@@ -18,7 +18,7 @@ jobs:
       # https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idruns-on
 
     outputs:
-      AppVersion: ${{ steps.gitversion.outputs.MajorMinorPatch }}.${{ steps.gitversion.outputs. }}
+      AppVersion: ${{ steps.gitversion.outputs.MajorMinorPatch }}.${{ steps.gitversion.outputs.ShortSha }}
 
     steps:
       - name: Checkout code from repository
